@@ -65,6 +65,24 @@ ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}
 details{font-size:14px;color:var(--muted)}
 summary{cursor:pointer;color:var(--fg);font-weight:600}
 details ul{margin:8px 0 0;padding-left:18px;display:grid;gap:2px}
+.check{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:10px;padding:14px;display:grid;gap:10px}
+.check h2{font-family:var(--display);font-weight:700;font-size:20px;margin:0;text-transform:uppercase;letter-spacing:.02em}
+.check p{margin:0;color:var(--muted);font-size:14px}
+.crow{display:grid;grid-template-columns:28px 1fr 120px;gap:8px;align-items:center}
+.crow .n{font-family:var(--display);font-weight:700;font-size:20px;color:var(--muted);text-align:center}
+.crow .who{min-width:0;font-size:14px}
+.crow .who a{color:var(--sign);font-size:13px}
+.crow input{font:500 14px var(--mono);text-transform:uppercase;width:100%;background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:6px 8px}
+.crow input:focus-visible,.btn:focus-visible{outline:2px solid var(--sign);outline-offset:2px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:600 14px var(--body);background:var(--sign);color:var(--sign-fg);border:0;border-radius:6px;padding:8px 14px;cursor:pointer}
+.btn:disabled{opacity:.45;cursor:default}
+#copyMsg{font-size:13px;color:var(--good)}
+#copyOut{width:100%;font:13px var(--mono);background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:6px;padding:8px;min-height:70px}
+.reg{font-family:var(--mono);font-size:12px;font-weight:500;padding:1px 6px;border-radius:3px;border:1px solid var(--fg);color:var(--fg)}
+.hist{font-size:13px;color:var(--fg);margin:0}
+.hist.bad{color:var(--low)} .hist.ok{color:var(--good)}
+@media (max-width:480px){.crow{grid-template-columns:24px 1fr 100px}}
 @media (max-width:480px){.car{grid-template-columns:32px 1fr auto;gap:4px 10px;padding:12px}.rank{font-size:22px}.title{font-size:20px}}
 </style>
 </head>
@@ -77,6 +95,17 @@ details ul{margin:8px 0 0;padding-left:18px;display:grid;gap:2px}
   </header>
 
   <div class="summary" id="summary"></div>
+
+  <section class="check" id="check" hidden>
+    <h2>Kolla historiken</h2>
+    <p>Öppna annonsen, skriv in regnumret och kopiera texten till Claude. Då kollas ägare, besiktningar och miltal på biluppgifter.se och resultatet läggs in här.</p>
+    <div id="checkRows" style="display:grid;gap:8px"></div>
+    <div class="actions">
+      <button class="btn" id="copyBtn" type="button" disabled>Kopiera till Claude</button>
+      <span id="copyMsg" role="status"></span>
+    </div>
+    <textarea id="copyOut" readonly hidden aria-label="Text att skicka till Claude"></textarea>
+  </section>
 
   <div class="tabs" role="tablist">
     <button class="tab" role="tab" id="tab-top" aria-selected="true">Topplista</button>
@@ -157,7 +186,9 @@ function render(){
     f.append(el("span",null,fmt(r.price)+" kr"), el("span",null,fmt(r.mil)+" mil"), el("span",null,r.gearbox||""), el("span",null,r.city));
     f.append(el("span","region "+(r.region||""),REGION[r.region]||"Okänd ort"));
     main.append(f);
+    if(r.regnr) f.append(el("span","reg",r.regnr));
     if(r.excluded) main.append(el("div","why","Bortsorterad: "+r.excluded));
+    if(r.history) main.append(el("p","hist "+(r.historyOk===false?"bad":r.historyOk===true?"ok":""),"Biluppgifter: "+r.history));
     if(r.note) main.append(el("p","note",r.note));
     if(p) main.append(el("div","parts","Pris "+p.pris+" · Mil "+p.mil+" · År "+p.ar+" · Ort "+p.ort));
     const meta=el("div","meta");
@@ -171,6 +202,38 @@ function render(){
     list.append(li);
   }
 }
+
+function renderCheck(){
+  const todo=rows.filter(r=>!r.excluded&&!isDim(r)&&!r.regnr).map(r=>({r,p:parts(r)})).sort((a,b)=>b.p.total-a.p.total).slice(0,5);
+  const box=document.getElementById("check"), wrap=document.getElementById("checkRows");
+  box.hidden=!todo.length; wrap.textContent="";
+  const all=rows.filter(r=>!r.excluded&&!isDim(r)).map(r=>({r,p:parts(r)})).sort((a,b)=>b.p.total-a.p.total);
+  for(const {r,p} of todo){
+    const row=el("div","crow");
+    row.append(el("span","n",String(all.findIndex(x=>x.r.id===r.id)+1)));
+    const who=el("div","who"); who.append(el("div",null,r.model+" "+r.year+", "+r.city+" · "+p.total+" p"));
+    const a=el("a",null,"Öppna annonsen"); a.href="https://www.blocket.se/"+r.id; a.target="_blank"; a.rel="noopener"; who.append(a);
+    row.append(who);
+    const inp=document.createElement("input"); inp.id="reg-"+r.id; inp.placeholder="ABC 123"; inp.maxLength=8; inp.autocomplete="off";
+    inp.setAttribute("aria-label","Regnummer för "+r.model+" "+r.year+" i "+r.city); inp.dataset.id=r.id; inp.dataset.label=r.model+" "+r.year+", "+r.city;
+    inp.addEventListener("input",updateCopy);
+    row.append(inp); wrap.append(row);
+  }
+  updateCopy();
+}
+function buildText(){
+  const items=[...document.querySelectorAll("#checkRows input")].map(i=>({id:i.dataset.id,label:i.dataset.label,reg:i.value.replace(/\s+/g,"").toUpperCase()})).filter(x=>x.reg.length>=5);
+  if(!items.length) return "";
+  return "Kolla biluppgifter.se för de här bilarna i Bilkollen och lägg in resultatet på sidan:\n"+items.map(x=>"- "+x.reg+" (annons "+x.id+", "+x.label+")").join("\n");
+}
+function updateCopy(){ document.getElementById("copyBtn").disabled=!buildText(); document.getElementById("copyMsg").textContent=""; }
+document.getElementById("copyBtn").addEventListener("click",async()=>{
+  const t=buildText(), out=document.getElementById("copyOut"), msg=document.getElementById("copyMsg");
+  out.value=t;
+  try{ await navigator.clipboard.writeText(t); msg.textContent="Kopierat. Klistra in i chatten med Claude."; out.hidden=true; }
+  catch(e){ out.hidden=false; out.select(); msg.textContent="Markera texten nedan och kopiera den."; }
+});
+renderCheck();
 
 for(const [id,val] of [["tab-top","top"],["tab-out","out"]]){
   document.getElementById(id).addEventListener("click",()=>{
