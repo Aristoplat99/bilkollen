@@ -98,7 +98,7 @@ details ul{margin:8px 0 0;padding-left:18px;display:grid;gap:2px}
 
   <section class="check" id="check" hidden>
     <h2>Kolla historiken</h2>
-    <p>Öppna annonsen, skriv in regnumret eller chassinumret (VIN, 17 tecken) och tryck Skicka, och sedan Create i GitHub. Numret dyker upp här inom ett par minuter, och vid nästa kvällskoll bedöms ägare, besiktningar och miltal.</p>
+    <p>Öppna annonsen, skriv in regnumret eller chassinumret (VIN, 17 tecken) och tryck Skicka, och sedan Create i GitHub. Numret dyker upp här inom ett par minuter, och inom en timme (08–23) kollas ägare, besiktningar och miltal.</p>
     <div id="checkRows" style="display:grid;gap:8px"></div>
     <div class="actions">
       <button class="btn" id="copyBtn" type="button" disabled>Skicka</button>
@@ -189,7 +189,7 @@ function render(){
     if(r.regnr||r.vin) f.append(el("span","reg",r.regnr||r.vin));
     if(r.excluded) main.append(el("div","why","Bortsorterad: "+r.excluded));
     if(r.history) main.append(el("p","hist "+(r.historyOk===false?"bad":r.historyOk===true?"ok":""),"Biluppgifter: "+r.history));
-    else if(r.regnr||r.vin){ const hp=el("p","hist","Historiken bedöms vid nästa kvällskoll. "); const bl=el("a",null,"Se på biluppgifter.se"); bl.href="https://biluppgifter.se/fordon/"+encodeURIComponent(r.regnr||r.vin); bl.target="_blank"; bl.rel="noopener"; bl.style.color="var(--sign)"; hp.append(bl); main.append(hp); }
+    else if(r.regnr||r.vin){ const hp=el("p","hist","Historiken kollas inom en timme (08–23). "); const bl=el("a",null,"Se på biluppgifter.se"); bl.href="https://biluppgifter.se/fordon/"+encodeURIComponent(r.regnr||r.vin); bl.target="_blank"; bl.rel="noopener"; bl.style.color="var(--sign)"; hp.append(bl); main.append(hp); }
     if(r.note) main.append(el("p","note",r.note));
     if(p) main.append(el("div","parts","Pris "+p.pris+" · Mil "+p.mil+" · År "+p.ar+" · Ort "+p.ort+(p.hist!==null?" · Historik "+(p.hist>0?"+":"")+p.hist:"")));
     const meta=el("div","meta");

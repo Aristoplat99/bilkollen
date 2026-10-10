@@ -39,7 +39,7 @@ jobs:
           CHANGED: ${{ steps.add.outputs.changed }}
         run: |
           if [ -n "$CHANGED" ]; then
-            msg=$(printf 'Inlagt på Bilkollen:\n%s\n\nHistoriken bedöms vid nästa kvällskoll.' "$CHANGED")
+            msg=$(printf 'Inlagt på Bilkollen:\n%s\n\nHistoriken kollas inom en timme (08–23).' "$CHANGED")
           else
             msg="Inga giltiga nummer hittades (regnr som ABC123 eller ABC12D, eller chassinummer med 17 tecken)."
           fi
