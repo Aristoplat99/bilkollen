@@ -10,6 +10,7 @@ import sys
 BODY = os.environ.get("ISSUE_BODY", "")
 PATH = "index.html"
 REG_RE = re.compile(r"^[A-Z]{3}\d{2}[A-Z0-9]$")
+VIN_RE = re.compile(r"^[A-HJ-NPR-Z0-9]{17}$")
 
 html = open(PATH, encoding="utf-8").read()
 m = re.search(r'(<script type="application/json" id="listings">)(.*?)(</script>)', html, re.S)
@@ -24,9 +25,10 @@ for line in BODY.splitlines():
     if len(parts) < 2:
         continue
     ad_id, reg = parts[0], parts[1].upper()
-    if ad_id in by_id and REG_RE.match(reg):
-        if by_id[ad_id].get("regnr") != reg:
-            by_id[ad_id]["regnr"] = reg
+    field = "regnr" if REG_RE.match(reg) else "vin" if VIN_RE.match(reg) else None
+    if ad_id in by_id and field:
+        if by_id[ad_id].get(field) != reg:
+            by_id[ad_id][field] = reg
             changed.append(f"{reg} → {by_id[ad_id]['model']} {by_id[ad_id]['year']}, {by_id[ad_id]['city']}")
 
 if changed:

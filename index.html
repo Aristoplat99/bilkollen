@@ -68,7 +68,7 @@ details ul{margin:8px 0 0;padding-left:18px;display:grid;gap:2px}
 .check{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--warn);border-radius:10px;padding:14px;display:grid;gap:10px}
 .check h2{font-family:var(--display);font-weight:700;font-size:20px;margin:0;text-transform:uppercase;letter-spacing:.02em}
 .check p{margin:0;color:var(--muted);font-size:14px}
-.crow{display:grid;grid-template-columns:28px 1fr 120px;gap:8px;align-items:center}
+.crow{display:grid;grid-template-columns:28px 1fr 170px;gap:8px;align-items:center}
 .crow .n{font-family:var(--display);font-weight:700;font-size:20px;color:var(--muted);text-align:center}
 .crow .who{min-width:0;font-size:14px}
 .crow .who a{color:var(--sign);font-size:13px}
@@ -82,7 +82,7 @@ details ul{margin:8px 0 0;padding-left:18px;display:grid;gap:2px}
 .reg{font-family:var(--mono);font-size:12px;font-weight:500;padding:1px 6px;border-radius:3px;border:1px solid var(--fg);color:var(--fg)}
 .hist{font-size:13px;color:var(--fg);margin:0}
 .hist.bad{color:var(--low)} .hist.ok{color:var(--good)}
-@media (max-width:480px){.crow{grid-template-columns:24px 1fr 100px}}
+@media (max-width:480px){.crow{grid-template-columns:24px 1fr}.crow input{grid-column:2}}
 @media (max-width:480px){.car{grid-template-columns:32px 1fr auto;gap:4px 10px;padding:12px}.rank{font-size:22px}.title{font-size:20px}}
 </style>
 </head>
@@ -98,7 +98,7 @@ details ul{margin:8px 0 0;padding-left:18px;display:grid;gap:2px}
 
   <section class="check" id="check" hidden>
     <h2>Kolla historiken</h2>
-    <p>Öppna annonsen, skriv in regnumret och tryck Skicka, och sedan Create i GitHub. Regnumret dyker upp här inom ett par minuter, och vid nästa kvällskoll bedöms ägare, besiktningar och miltal.</p>
+    <p>Öppna annonsen, skriv in regnumret eller chassinumret (VIN, 17 tecken) och tryck Skicka, och sedan Create i GitHub. Numret dyker upp här inom ett par minuter, och vid nästa kvällskoll bedöms ägare, besiktningar och miltal.</p>
     <div id="checkRows" style="display:grid;gap:8px"></div>
     <div class="actions">
       <button class="btn" id="copyBtn" type="button" disabled>Skicka</button>
@@ -186,10 +186,10 @@ function render(){
     f.append(el("span",null,fmt(r.price)+" kr"), el("span",null,fmt(r.mil)+" mil"), el("span",null,r.gearbox||""), el("span",null,r.city));
     f.append(el("span","region "+(r.region||""),REGION[r.region]||"Okänd ort"));
     main.append(f);
-    if(r.regnr) f.append(el("span","reg",r.regnr));
+    if(r.regnr||r.vin) f.append(el("span","reg",r.regnr||r.vin));
     if(r.excluded) main.append(el("div","why","Bortsorterad: "+r.excluded));
     if(r.history) main.append(el("p","hist "+(r.historyOk===false?"bad":r.historyOk===true?"ok":""),"Biluppgifter: "+r.history));
-    else if(r.regnr){ const hp=el("p","hist","Historiken bedöms vid nästa kvällskoll. "); const bl=el("a",null,"Se på biluppgifter.se"); bl.href="https://biluppgifter.se/fordon/"+encodeURIComponent(r.regnr); bl.target="_blank"; bl.rel="noopener"; bl.style.color="var(--sign)"; hp.append(bl); main.append(hp); }
+    else if(r.regnr||r.vin){ const hp=el("p","hist","Historiken bedöms vid nästa kvällskoll. "); const bl=el("a",null,"Se på biluppgifter.se"); bl.href="https://biluppgifter.se/fordon/"+encodeURIComponent(r.regnr||r.vin); bl.target="_blank"; bl.rel="noopener"; bl.style.color="var(--sign)"; hp.append(bl); main.append(hp); }
     if(r.note) main.append(el("p","note",r.note));
     if(p) main.append(el("div","parts","Pris "+p.pris+" · Mil "+p.mil+" · År "+p.ar+" · Ort "+p.ort+(p.hist!==null?" · Historik "+(p.hist>0?"+":"")+p.hist:"")));
     const meta=el("div","meta");
@@ -205,7 +205,7 @@ function render(){
 }
 
 function renderCheck(){
-  const todo=rows.filter(r=>!r.excluded&&!isDim(r)&&!r.regnr).map(r=>({r,p:parts(r)})).sort((a,b)=>b.p.total-a.p.total).slice(0,5);
+  const todo=rows.filter(r=>!r.excluded&&!isDim(r)&&!r.regnr&&!r.vin).map(r=>({r,p:parts(r)})).sort((a,b)=>b.p.total-a.p.total).slice(0,5);
   const box=document.getElementById("check"), wrap=document.getElementById("checkRows");
   box.hidden=!todo.length; wrap.textContent="";
   const all=rows.filter(r=>!r.excluded&&!isDim(r)).map(r=>({r,p:parts(r)})).sort((a,b)=>b.p.total-a.p.total);
@@ -215,8 +215,8 @@ function renderCheck(){
     const who=el("div","who"); who.append(el("div",null,r.model+" "+r.year+", "+r.city+" · "+p.total+" p"));
     const a=el("a",null,"Öppna annonsen"); a.href="https://www.blocket.se/"+r.id; a.target="_blank"; a.rel="noopener"; who.append(a);
     row.append(who);
-    const inp=document.createElement("input"); inp.id="reg-"+r.id; inp.placeholder="ABC 123"; inp.maxLength=8; inp.autocomplete="off";
-    inp.setAttribute("aria-label","Regnummer för "+r.model+" "+r.year+" i "+r.city); inp.dataset.id=r.id; inp.dataset.label=r.model+" "+r.year+", "+r.city;
+    const inp=document.createElement("input"); inp.id="reg-"+r.id; inp.placeholder="Regnr eller chassinr"; inp.maxLength=20; inp.autocomplete="off";
+    inp.setAttribute("aria-label","Regnummer eller chassinummer för "+r.model+" "+r.year+" i "+r.city); inp.dataset.id=r.id; inp.dataset.label=r.model+" "+r.year+", "+r.city;
     inp.addEventListener("input",updateCopy);
     row.append(inp); wrap.append(row);
   }

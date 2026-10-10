@@ -41,6 +41,6 @@ jobs:
           if [ -n "$CHANGED" ]; then
             msg=$(printf 'Inlagt på Bilkollen:\n%s\n\nHistoriken bedöms vid nästa kvällskoll.' "$CHANGED")
           else
-            msg="Inga giltiga regnummer hittades (format: ABC123 eller ABC12D)."
+            msg="Inga giltiga nummer hittades (regnr som ABC123 eller ABC12D, eller chassinummer med 17 tecken)."
           fi
           gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} --body "$msg"
