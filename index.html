@@ -114,14 +114,14 @@ details ul{margin:8px 0 0;padding-left:18px;display:grid;gap:2px}
   <ol id="list"></ol>
 
   <details>
-    <summary>Så räknas poängen (max 100)</summary>
+    <summary>Så räknas poängen (max 110)</summary>
     <ul>
       <li>Pris, 0–30: 30 p vid 20 000 kr, 0 p vid 45 000 kr</li>
       <li>Mil, 0–30: 30 p vid 8 000 mil, 0 p vid 18 000 mil</li>
       <li>Årsmodell, 0–20: 4 p per år efter 2008</li>
       <li>Ort, 0–20: inland 20, kust eller storstad 10, Skåne 0 (vägsalt)</li>
+      <li>Historik, −30 till +10 (när regnumret är kollat): ren historik +10, ett mindre frågetecken 0, varje varningstecken −10 (flera underkännanden, snabba ägarbyten, upprepade avställningar, flipp, miltal som inte stämmer, fler än ca 5 ägare)</li>
     </ul>
-    <p>Ägarhistorik, besiktningar och dragkrok syns inte i Blocket-mejlen. Kolla regnumret på biluppgifter.se.</p>
   </details>
 </div>
 
@@ -151,7 +151,8 @@ function parts(c){
   const mil=Math.round(clamp(30*(18000-c.mil)/10000,0,30));
   const ar=Math.round(clamp((c.year-2008)*4,0,20));
   const ort={inland:20,kust:10,skane:0}[c.region]??10;
-  return {pris,mil,ar,ort,total:pris+mil+ar+ort};
+  const hist=typeof c.historyAdj==="number"?clamp(Math.round(c.historyAdj),-30,10):null;
+  return {pris,mil,ar,ort,hist,total:pris+mil+ar+ort+(hist||0)};
 }
 const fmt=n=>Number(n).toLocaleString("sv-SE");
 const isDim=r=>r.status==="nej"||r.status==="sald";
@@ -190,7 +191,7 @@ function render(){
     if(r.history) main.append(el("p","hist "+(r.historyOk===false?"bad":r.historyOk===true?"ok":""),"Biluppgifter: "+r.history));
     else if(r.regnr){ const hp=el("p","hist","Historiken bedöms vid nästa kvällskoll. "); const bl=el("a",null,"Se på biluppgifter.se"); bl.href="https://biluppgifter.se/fordon/"+encodeURIComponent(r.regnr); bl.target="_blank"; bl.rel="noopener"; bl.style.color="var(--sign)"; hp.append(bl); main.append(hp); }
     if(r.note) main.append(el("p","note",r.note));
-    if(p) main.append(el("div","parts","Pris "+p.pris+" · Mil "+p.mil+" · År "+p.ar+" · Ort "+p.ort));
+    if(p) main.append(el("div","parts","Pris "+p.pris+" · Mil "+p.mil+" · År "+p.ar+" · Ort "+p.ort+(p.hist!==null?" · Historik "+(p.hist>0?"+":"")+p.hist:"")));
     const meta=el("div","meta");
     if(isNew(r.firstSeen)) meta.append(el("span","newtag","Ny"));
     meta.append(el("span",null,"Sedd "+(r.firstSeen||"–")+" · "+(r.seller==="privat"?"Privat":"Handlare")));
