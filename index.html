@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bilkollen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Barlow:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column ranked list, like a row of road signs; summary bar on top, tabs, then cards. */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --fg:#14202e; --muted:#5b6878; --line:#d9dfe7;
+  --sign:#0b5aa6; --sign-fg:#ffffff; --warn:#f2c230; --warn-fg:#1d1a10;
+  --good:#1f7a4a; --mid:#a86a00; --low:#b23a3a;
+  --display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
+  --body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e141c; --surface:#16202b; --fg:#e6ecf3; --muted:#93a1b2; --line:#2a3644;
+  --sign:#3d8be0; --sign-fg:#06121f; --warn:#f2c230; --warn-fg:#1d1a10;
+  --good:#4cc283; --mid:#e0a63a; --low:#e07272; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e141c; --surface:#16202b; --fg:#e6ecf3; --muted:#93a1b2; --line:#2a3644;
+  --sign:#3d8be0; --sign-fg:#06121f; --warn:#f2c230; --warn-fg:#1d1a10;
+  --good:#4cc283; --mid:#e0a63a; --low:#e07272; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45}
+.wrap{max-width:760px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:grid;gap:18px}
+header{display:grid;gap:6px}
+.plate{display:inline-flex;align-items:center;gap:10px;background:var(--sign);color:var(--sign-fg);padding:6px 14px 4px;border-radius:6px;width:max-content;max-width:100%}
+h1{font-family:var(--display);font-weight:700;font-size:34px;letter-spacing:.02em;margin:0;text-transform:uppercase}
+.crit{color:var(--muted);font-size:14px;margin:0}
+.crit b{color:var(--fg);font-weight:600}
+.summary{display:flex;flex-wrap:wrap;gap:8px 20px;font-size:14px;color:var(--muted)}
+.summary strong{font-family:var(--mono);font-weight:500;color:var(--fg)}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line)}
+.tab{font:600 15px var(--body);background:none;border:0;color:var(--muted);padding:8px 10px;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-1px}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--sign)}
+.tab:focus-visible,a:focus-visible{outline:2px solid var(--sign);outline-offset:2px}
+ol{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.car{display:grid;grid-template-columns:44px 1fr auto;gap:4px 14px;align-items:start;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px}
+.car.dim{opacity:.55}
+.rank{font-family:var(--display);font-weight:700;font-size:28px;line-height:1;color:var(--muted);text-align:center;padding-top:2px}
+.main{min-width:0;display:grid;gap:4px}
+.title{font-family:var(--display);font-weight:600;font-size:22px;line-height:1.1;margin:0}
+.title a{color:inherit;text-decoration:none}
+.title a:hover{text-decoration:underline}
+.facts{display:flex;flex-wrap:wrap;gap:4px 12px;font-family:var(--mono);font-size:13px;color:var(--fg)}
+.facts span{white-space:nowrap}
+.region{font-family:var(--body);font-size:12px;font-weight:600;padding:1px 7px;border-radius:4px;border:1px solid var(--line);color:var(--muted)}
+.region.inland{color:var(--good);border-color:currentColor}
+.region.skane{color:var(--low);border-color:currentColor}
+.note{color:var(--muted);font-size:14px;margin:0}
+.parts{font-family:var(--mono);font-size:12px;color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;font-size:13px;color:var(--muted);margin-top:4px}
+.newtag{background:var(--warn);color:var(--warn-fg);font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border-radius:3px}
+.status{font-weight:600;font-size:12px;padding:1px 7px;border-radius:4px;border:1px solid currentColor;color:var(--sign)}
+.score{display:grid;justify-items:center;gap:2px;min-width:56px}
+.score b{font-family:var(--display);font-weight:700;font-size:30px;line-height:1}
+.score small{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.hi b{color:var(--good)} .md b{color:var(--mid)} .lo b{color:var(--low)}
+.why{font-size:13px;color:var(--low);font-weight:500}
+.empty{background:var(--surface);border:1px dashed var(--line);border-radius:10px;padding:22px;color:var(--muted)}
+details{font-size:14px;color:var(--muted)}
+summary{cursor:pointer;color:var(--fg);font-weight:600}
+details ul{margin:8px 0 0;padding-left:18px;display:grid;gap:2px}
+@media (max-width:480px){.car{grid-template-columns:32px 1fr auto;gap:4px 10px;padding:12px}.rank{font-size:22px}.title{font-size:20px}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="plate"><h1>Bilkollen</h1></div>
+    <p class="crit"><b>Yaris-klassen</b> · bensin · max <b>45 000 kr</b> · max <b>18 000 mil</b> · 2008 eller nyare · privat säljare</p>
+  </header>
+
+  <div class="summary" id="summary"></div>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-top" aria-selected="true">Topplista</button>
+    <button class="tab" role="tab" id="tab-out" aria-selected="false">Bortsorterade</button>
+  </div>
+
+  <ol id="list"></ol>
+
+  <details>
+    <summary>Så räknas poängen (max 100)</summary>
+    <ul>
+      <li>Pris, 0–30: 30 p vid 20 000 kr, 0 p vid 45 000 kr</li>
+      <li>Mil, 0–30: 30 p vid 8 000 mil, 0 p vid 18 000 mil</li>
+      <li>Årsmodell, 0–20: 4 p per år efter 2008</li>
+      <li>Ort, 0–20: inland 20, kust eller storstad 10, Skåne 0 (vägsalt)</li>
+    </ul>
+    <p>Ägarhistorik, besiktningar och dragkrok syns inte i Blocket-mejlen. Kolla regnumret på biluppgifter.se.</p>
+  </details>
+</div>
+
+<!-- LISTINGS DATA: one object per Blocket ad. Updated nightly. -->
+<script type="application/json" id="listings">
+[
+{"id":"27272418","model":"Toyota Yaris","year":2009,"mil":13500,"price":32000,"gearbox":"Manuell","city":"Ulricehamn","region":"inland","seller":"privat","firstSeen":"2026-10-10","status":"ny","excluded":null,"note":"Lågt pris, lagom miltal, inlandsbil."},
+{"id":"27274636","model":"Hyundai i20","year":2009,"mil":17700,"price":23900,"gearbox":"Manuell","city":"Motala","region":"inland","seller":"privat","firstSeen":"2026-10-10","status":"ny","excluded":null,"note":"Billigast, men miltalet nära gränsen."},
+{"id":"27264298","model":"Toyota Yaris","year":2010,"mil":15000,"price":44000,"gearbox":"Manuell","city":"Västerås","region":"inland","seller":"privat","firstSeen":"2026-10-10","status":"ny","excluded":null,"note":"Inlandsbil, men nära maxbudget."},
+{"id":"27194100","model":"Toyota Yaris","year":2011,"mil":15832,"price":37000,"gearbox":"Manuell","city":"Trollhättan","region":"kust","seller":"privat","firstSeen":"2026-10-07","status":"ny","excluded":null,"note":"Nyast årsmodell. Nära kusten, kolla rost."},
+{"id":"27178592","model":"Toyota Yaris","year":2009,"mil":11386,"price":42000,"gearbox":"Manuell","city":"Upplands Väsby","region":"kust","seller":"privat","firstSeen":"2026-10-07","status":"ny","excluded":null,"note":"Lägst miltal. Stockholmsregionen, saltade vägar."},
+{"id":"27262516","model":"Toyota Yaris","year":2009,"mil":17100,"price":39900,"gearbox":"Okänd","city":"Kungälv","region":"kust","seller":"handlare","firstSeen":"2026-10-10","status":"ny","excluded":"handlare","note":null},
+{"id":"27239569","model":"Hyundai i20","year":2010,"mil":13625,"price":39900,"gearbox":"Okänd","city":"Handen","region":"kust","seller":"handlare","firstSeen":"2026-10-09","status":"ny","excluded":"handlare (Haninge Bilpark)","note":null},
+{"id":"27163858","model":"Hyundai i20","year":2012,"mil":10300,"price":44900,"gearbox":"Manuell","city":"Skövde","region":"inland","seller":"handlare","firstSeen":"2026-10-06","status":"ny","excluded":"handlare (78ans motor)","note":null}
+]
+</script>
+
+<script>
+const STATUS={ny:"Ny",kollad:"Kollad",kontaktad:"Kontaktad",nej:"Inte intressant",sald:"Såld"};
+const REGION={inland:"Inland",kust:"Kust/storstad",skane:"Skåne"};
+let rows=[]; try{ rows=JSON.parse(document.getElementById("listings").textContent); }catch(e){ rows=[]; }
+let tab="top";
+
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function parts(c){
+  const pris=Math.round(clamp(30*(45000-c.price)/25000,0,30));
+  const mil=Math.round(clamp(30*(18000-c.mil)/10000,0,30));
+  const ar=Math.round(clamp((c.year-2008)*4,0,20));
+  const ort={inland:20,kust:10,skane:0}[c.region]??10;
+  return {pris,mil,ar,ort,total:pris+mil+ar+ort};
+}
+const fmt=n=>Number(n).toLocaleString("sv-SE");
+const isDim=r=>r.status==="nej"||r.status==="sald";
+function isNew(d){ if(!d) return false; const t=new Date(d+"T12:00:00"); return (Date.now()-t)<36*3600*1000; }
+function el(tag,cls,text){const e=document.createElement(tag); if(cls) e.className=cls; if(text!=null) e.textContent=text; return e;}
+
+function render(){
+  const list=document.getElementById("list");
+  const active=rows.filter(r=>!r.excluded), out=rows.filter(r=>r.excluded);
+  const sum=document.getElementById("summary"); sum.textContent="";
+  const live=active.filter(r=>!isDim(r)).map(r=>({r,p:parts(r)})).sort((a,b)=>b.p.total-a.p.total);
+  const add=(label,val)=>{const s=el("span",null,label+" "); s.append(el("strong",null,val)); sum.append(s);};
+  add("Kandidater",String(live.length));
+  if(live[0]) add("Bäst just nu",live[0].p.total+" p · "+live[0].r.model+" "+live[0].r.year+", "+live[0].r.city);
+  add("Bortsorterade",String(out.length));
+
+  list.textContent="";
+  const shown = tab==="top"
+    ? active.map(r=>({r,p:parts(r)})).sort((a,b)=>(isDim(a.r)-isDim(b.r))||b.p.total-a.p.total)
+    : out.map(r=>({r,p:null})).sort((a,b)=>(b.r.firstSeen||"").localeCompare(a.r.firstSeen||""));
+  if(!shown.length){ list.append(el("li","empty", tab==="top"?"Inga kandidater än. Kvällskollen lägger till annonser som klarar filtret.":"Inget har sorterats bort.")); return; }
+
+  let rank=0;
+  for(const {r,p} of shown){
+    const dim=isDim(r);
+    const li=el("li","car"+(dim?" dim":""));
+    li.append(el("div","rank", tab==="top"&&!dim? String(++rank) : "–"));
+    const main=el("div","main");
+    const h=el("h2","title"); const a=el("a",null,r.model+" "+r.year); a.href="https://www.blocket.se/"+r.id; a.target="_blank"; a.rel="noopener"; h.append(a); main.append(h);
+    const f=el("div","facts");
+    f.append(el("span",null,fmt(r.price)+" kr"), el("span",null,fmt(r.mil)+" mil"), el("span",null,r.gearbox||""), el("span",null,r.city));
+    f.append(el("span","region "+(r.region||""),REGION[r.region]||"Okänd ort"));
+    main.append(f);
+    if(r.excluded) main.append(el("div","why","Bortsorterad: "+r.excluded));
+    if(r.note) main.append(el("p","note",r.note));
+    if(p) main.append(el("div","parts","Pris "+p.pris+" · Mil "+p.mil+" · År "+p.ar+" · Ort "+p.ort));
+    const meta=el("div","meta");
+    if(isNew(r.firstSeen)) meta.append(el("span","newtag","Ny"));
+    meta.append(el("span",null,"Sedd "+(r.firstSeen||"–")+" · "+(r.seller==="privat"?"Privat":"Handlare")));
+    if(r.status&&r.status!=="ny") meta.append(el("span","status",STATUS[r.status]||r.status));
+    main.append(meta);
+    li.append(main);
+    if(p){ const s=el("div","score "+(p.total>=50?"hi":p.total>=35?"md":"lo")); s.append(el("b",null,String(p.total)), el("small",null,"poäng")); li.append(s); }
+    else li.append(el("div"));
+    list.append(li);
+  }
+}
+
+for(const [id,val] of [["tab-top","top"],["tab-out","out"]]){
+  document.getElementById(id).addEventListener("click",()=>{
+    tab=val;
+    document.getElementById("tab-top").setAttribute("aria-selected",String(val==="top"));
+    document.getElementById("tab-out").setAttribute("aria-selected",String(val==="out"));
+    render();
+  });
+}
+render();
+</script>
+
+</body>
+</html>
