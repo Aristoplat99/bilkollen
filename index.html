@@ -98,7 +98,7 @@ details ul{margin:8px 0 0;padding-left:18px;display:grid;gap:2px}
 
   <section class="check" id="check" hidden>
     <h2>Kolla historiken</h2>
-    <p>Öppna annonsen, skriv in regnumret och tryck Skicka. Vid nästa kvällskoll kollas ägare, besiktningar och miltal på biluppgifter.se och resultatet läggs in här.</p>
+    <p>Öppna annonsen, skriv in regnumret och tryck Skicka, och sedan Create i GitHub. Regnumret dyker upp här inom ett par minuter, och vid nästa kvällskoll bedöms ägare, besiktningar och miltal.</p>
     <div id="checkRows" style="display:grid;gap:8px"></div>
     <div class="actions">
       <button class="btn" id="copyBtn" type="button" disabled>Skicka</button>
@@ -188,6 +188,7 @@ function render(){
     if(r.regnr) f.append(el("span","reg",r.regnr));
     if(r.excluded) main.append(el("div","why","Bortsorterad: "+r.excluded));
     if(r.history) main.append(el("p","hist "+(r.historyOk===false?"bad":r.historyOk===true?"ok":""),"Biluppgifter: "+r.history));
+    else if(r.regnr){ const hp=el("p","hist","Historiken bedöms vid nästa kvällskoll. "); const bl=el("a",null,"Se på biluppgifter.se"); bl.href="https://biluppgifter.se/fordon/"+encodeURIComponent(r.regnr); bl.target="_blank"; bl.rel="noopener"; bl.style.color="var(--sign)"; hp.append(bl); main.append(hp); }
     if(r.note) main.append(el("p","note",r.note));
     if(p) main.append(el("div","parts","Pris "+p.pris+" · Mil "+p.mil+" · År "+p.ar+" · Ort "+p.ort));
     const meta=el("div","meta");
@@ -231,7 +232,7 @@ document.getElementById("copyBtn").addEventListener("click",()=>{
   const regs=t.split("\n").map(l=>l.split(" ")[1]).join(", ");
   const url="https://github.com/Aristoplat99/bilkollen/issues/new?title="+encodeURIComponent("Regnr: "+regs)+"&body="+encodeURIComponent(t);
   window.open(url,"_blank","noopener");
-  document.getElementById("copyMsg").textContent="Ett GitHub-ärende öppnades. Tryck Create/Submit där för att skicka.";
+  document.getElementById("copyMsg").textContent="GitHub öppnades i en ny flik. Tryck Create där, ladda sedan om den här sidan om ett par minuter.";
 });
 renderCheck();
 

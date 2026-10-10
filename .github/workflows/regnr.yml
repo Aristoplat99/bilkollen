@@ -1,0 +1,46 @@
+name: Lägg in regnummer
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  add:
+    if: startsWith(github.event.issue.title, 'Regnr:') && github.event.issue.user.login == github.repository_owner
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skriv in regnummer
+        id: add
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: |
+          out=$(python3 .github/scripts/add_regnr.py)
+          echo "$out"
+          {
+            echo "changed<<EOF"
+            echo "$out"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+      - name: Commita och pusha
+        if: steps.add.outputs.changed != ''
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git commit -am "Regnummer från ärende #${{ github.event.issue.number }}"
+          git push
+      - name: Svara i ärendet
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHANGED: ${{ steps.add.outputs.changed }}
+        run: |
+          if [ -n "$CHANGED" ]; then
+            msg=$(printf 'Inlagt på Bilkollen:\n%s\n\nHistoriken bedöms vid nästa kvällskoll.' "$CHANGED")
+          else
+            msg="Inga giltiga regnummer hittades (format: ABC123 eller ABC12D)."
+          fi
+          gh issue comment ${{ github.event.issue.number }} --repo ${{ github.repository }} --body "$msg"
